@@ -1,6 +1,9 @@
 const canvas = document.getElementById("myCanvas");
 const ctx = canvas.getContext("2d");
 
+let frameCount = 0;
+let gameOver = false;
+
 const ballRadius = 10;
 let x = canvas.width / 2;
 let y = canvas.height - 30;
@@ -29,8 +32,12 @@ for (let c = 0; c < brickColumnCount; c++) {
   }
 }
 
-// ---- Movement Function ----
-// Replace this with any AI or predefined logic
+function drawTimer() {
+  ctx.font = "16px Arial";
+  ctx.fillStyle = "#0095DD";
+  ctx.fillText("Timer: " + frameCount, canvas.width - 100, 20);
+}
+
 function getNextMovement() {
   const moves = [-1, 0, 1];
   return moves[Math.floor(Math.random() * moves.length)];
@@ -101,11 +108,14 @@ function drawScore() {
 }
 
 function draw() {
+  if (gameOver) return;
+
   ctx.clearRect(0, 0, canvas.width, canvas.height);
   drawBricks();
   drawBall();
   drawPaddle();
   drawScore();
+  drawTimer();
   collisionDetection();
 
   if (x + dx > canvas.width - ballRadius || x + dx < ballRadius) {
@@ -118,7 +128,8 @@ function draw() {
       dy = -dy;
     } else {
       alert("GAME OVER");
-      document.location.reload();
+      gameOver = true;
+      return;
     }
   }
 
@@ -131,6 +142,7 @@ function draw() {
 
   x += dx;
   y += dy;
+  frameCount++;
 }
 
 setInterval(draw, 10);

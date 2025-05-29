@@ -14,3 +14,9 @@ Refactor this so that all the user input is removed. A function will be passed i
 clean separation of HTML and JavaScript
 
 display a timer that increases by 1 each frame until the end of game
+
+**change 3**
+
+when game ends reset the game and use reset the score, timer to zero. The highest value of the timer is shown on the screen. When the game ends the highest timer is updated if required.
+
+The score is added to the final timer at the end of the game.

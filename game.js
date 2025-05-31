@@ -291,6 +291,15 @@ function updateGADisplay() {
   `;
 }
 
+let gameInterval;
+
+function startGameLoop() {
+  if (gameInterval) {
+    clearInterval(gameInterval);
+  }
+  gameInterval = setInterval(draw, simulationMode ? 1 : 10);
+}
+
 function resetGame() {
   // Calculate fitness for current individual
   if (currentFSA) {
@@ -350,6 +359,9 @@ function resetGame() {
       bricks[c][r].status = 1;
     }
   }
+
+  // After mode changes, restart the game loop with correct timing
+  startGameLoop();
 }
 
 function drawTimer() {
@@ -503,4 +515,4 @@ function draw() {
 // Initialize GA and start with appropriate interval
 initializePopulation();
 updateGADisplay();
-setInterval(draw, simulationMode ? 1 : 10); // Fast for simulation, normal for display
+startGameLoop();

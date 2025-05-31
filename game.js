@@ -51,6 +51,11 @@ let currentState = 0;
 let gameStartTime = 0;
 let generationStats = []; // Track fitness over generations
 
+// Add simulation mode flag
+let simulationMode = true;
+let bestIndividualEver = null;
+let showingBestIndividual = false;
+
 // FSA Input encoding
 function getFSAInputs() {
   const ballX = x / canvas.width; // Normalized ball X position
@@ -266,12 +271,17 @@ function updateGADisplay() {
   }
   historyTable += '</table>';
   
+  const modeText = simulationMode ? "SIMULATION MODE" : "SHOWING BEST INDIVIDUAL";
+  const modeColor = simulationMode ? "#0095DD" : "#FF0000";
+  
   gaDiv.innerHTML = `
     <h3>Genetic Algorithm Status</h3>
+    <p style="color: ${modeColor}; font-weight: bold;">${modeText}</p>
     <p>Generation: ${generation}</p>
     <p>Individual: ${currentIndividualIndex + 1}/${POPULATION_SIZE}</p>
     <p>Current Avg Fitness: ${avgFitness.toFixed(2)}</p>
     <p>Best Fitness This Gen: ${bestIndividual.fitness.toFixed(2)}</p>
+    ${bestIndividualEver ? `<p>Best Ever Fitness: ${bestIndividualEver.fitness.toFixed(2)}</p>` : ''}
     
     <h4>Generation History (Last 10):</h4>
     ${historyTable}
@@ -286,13 +296,31 @@ function resetGame() {
   if (currentFSA) {
     const gameCompleted = score === brickRowCount * brickColumnCount;
     currentFSA.fitness = calculateFitness(score, frameCount, gameCompleted);
+    
+    // Check if this is the best individual ever
+    if (!bestIndividualEver || currentFSA.fitness > bestIndividualEver.fitness) {
+      bestIndividualEver = JSON.parse(JSON.stringify(currentFSA));
+    }
   }
   
   // Move to next individual or next generation
-  currentIndividualIndex++;
-  if (currentIndividualIndex >= POPULATION_SIZE) {
-    createNextGeneration();
+  if (simulationMode) {
+    currentIndividualIndex++;
+    if (currentIndividualIndex >= POPULATION_SIZE) {
+      createNextGeneration();
+      // After each generation, show the best individual playing a full game
+      showingBestIndividual = true;
+      simulationMode = false;
+      currentFSA = JSON.parse(JSON.stringify(bestIndividualEver));
+      currentState = 0;
+    } else {
+      currentFSA = population[currentIndividualIndex];
+      currentState = 0;
+    }
   } else {
+    // We just finished showing the best individual, return to simulation
+    showingBestIndividual = false;
+    simulationMode = true;
     currentFSA = population[currentIndividualIndex];
     currentState = 0;
   }
@@ -422,16 +450,27 @@ function draw() {
   // Check for maximum game time to prevent infinite play
   if (frameCount - gameStartTime > MAX_GAME_TIME) {
     gameOver = true;
-    setTimeout(resetGame, 100);
+    resetGame();
     return;
   }
 
-  ctx.clearRect(0, 0, canvas.width, canvas.height);
-  drawBricks();
-  drawBall();
-  drawPaddle();
-  drawScore();
-  drawTimer();
+  // Only draw if not in simulation mode
+  if (!simulationMode) {
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    drawBricks();
+    drawBall();
+    drawPaddle();
+    drawScore();
+    drawTimer();
+    
+    // Add indicator that we're showing the best individual
+    if (showingBestIndividual) {
+      ctx.font = "20px Arial";
+      ctx.fillStyle = "#FF0000";
+      ctx.fillText("BEST INDIVIDUAL", canvas.width / 2 - 80, 50);
+    }
+  }
+  
   collisionDetection();
 
   if (x + dx > canvas.width - ballRadius || x + dx < ballRadius) {
@@ -444,7 +483,7 @@ function draw() {
       dy = -dy;
     } else {
       gameOver = true;
-      setTimeout(resetGame, 100);
+      resetGame();
       return;
     }
   }
@@ -461,7 +500,7 @@ function draw() {
   frameCount++;
 }
 
-// Initialize GA and start
+// Initialize GA and start with appropriate interval
 initializePopulation();
 updateGADisplay();
-setInterval(draw, 10);
+setInterval(draw, simulationMode ? 1 : 10); // Fast for simulation, normal for display

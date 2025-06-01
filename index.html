@@ -2,35 +2,35 @@
 <html>
   <head>
     <meta charset="utf-8" />
-    <title>Canvas Game - Automated Paddle</title>
+    <title>Breakout GA</title>
     <style>
-      * {
-        padding: 0;
-        margin: 0;
+      body {
+        font-family: Arial, sans-serif;
+        margin: 20px;
       }
-      canvas {
-        background: #eee;
-        display: block;
-        margin: 0 auto;
+      #gameContainer {
+        display: flex;
+        gap: 20px;
       }
       #gaDisplay {
-        position: absolute;
-        right: 10px;
-        top: 10px;
-        width: 300px;
-        background: rgba(255,255,255,0.9);
-        padding: 10px;
+        width: 400px;
         border: 1px solid #ccc;
-        font-family: Arial, sans-serif;
-        font-size: 12px;
-        border-radius: 5px;
-        box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+        padding: 10px;
+        background-color: #f9f9f9;
+        max-height: 600px;
+        overflow-y: auto;
+      }
+      canvas {
+        border: 1px solid #000;
       }
     </style>
   </head>
   <body>
-    <canvas id="myCanvas" width="480" height="320"></canvas>
-    <div id="gaDisplay"></div>
+    <h1>Breakout with Genetic Algorithm</h1>
+    <div id="gameContainer">
+      <canvas id="myCanvas" width="480" height="320"></canvas>
+      <div id="gaDisplay"></div>
+    </div>
     <script src="game.js"></script>
   </body>
 </html>

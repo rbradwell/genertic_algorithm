@@ -34,6 +34,15 @@ for (let c = 0; c < brickColumnCount; c++) {
   }
 }
 
+// Web Worker and GA Variables
+let gaWorker = null;
+let bestIndividualsQueue = []; // Queue of best individuals to display
+let currentDisplayIndividual = null;
+let currentState = 0;
+let generationStats = [];
+let isPlayingBestIndividual = false;
+let displayInterval = null;
+
 // Genetic Algorithm Configuration
 const POPULATION_SIZE = 20;
 const MUTATION_RATE = 0.1;
@@ -47,9 +56,7 @@ let population = [];
 let currentIndividualIndex = 0;
 let generation = 1;
 let currentFSA = null;
-let currentState = 0;
 let gameStartTime = 0;
-let generationStats = []; // Track fitness over generations
 
 // Add simulation mode flag
 let simulationMode = true;
@@ -231,13 +238,14 @@ function createNextGeneration() {
 function formatFSAForDisplay(fsa) {
   let output = "{\n";
   output += "  fitness: " + fsa.fitness.toFixed(2) + ",\n";
+  output += "  generation: " + fsa.generation + ",\n";
   output += "  states: [\n";
   
   for (let i = 0; i < fsa.states.length; i++) {
     const state = fsa.states[i];
     output += `    State ${i}: {\n`;
     output += `      action: ${state.action},\n`;
-    output += `      transitions: [${state.transitions.join(', ')}]\n`;
+    output += `      transitions: [${state.transitions.slice(0, 8).join(', ')}...]\n`;
     output += `    }${i < fsa.states.length - 1 ? ',' : ''}\n`;
   }
   
@@ -245,59 +253,200 @@ function formatFSAForDisplay(fsa) {
   return output;
 }
 
-// Update display
+// Add this function before the initializeWorker function
 function updateGADisplay() {
-  const gaDiv = document.getElementById('gaDisplay');
-  if (!gaDiv) return;
-  
-  const bestIndividual = [...population].sort((a, b) => b.fitness - a.fitness)[0];
-  const avgFitness = population.reduce((sum, ind) => sum + ind.fitness, 0) / population.length;
-  const currentStats = generationStats[generationStats.length - 1];
-  
-  // Generation history table
-  let historyTable = '<table style="font-size: 12px; border-collapse: collapse; margin: 10px 0;">';
-  historyTable += '<tr><th style="border: 1px solid #ccc; padding: 4px;">Gen</th><th style="border: 1px solid #ccc; padding: 4px;">Avg Fitness</th><th style="border: 1px solid #ccc; padding: 4px;">Delta</th><th style="border: 1px solid #ccc; padding: 4px;">Best</th></tr>';
-  
-  // Show last 10 generations
-  const recentStats = generationStats.slice(-10);
-  for (const stat of recentStats) {
-    const deltaColor = stat.delta > 0 ? 'green' : stat.delta < 0 ? 'red' : 'black';
-    historyTable += `<tr>
-      <td style="border: 1px solid #ccc; padding: 4px;">${stat.generation}</td>
-      <td style="border: 1px solid #ccc; padding: 4px;">${stat.avgFitness.toFixed(2)}</td>
-      <td style="border: 1px solid #ccc; padding: 4px; color: ${deltaColor};">${stat.delta >= 0 ? '+' : ''}${stat.delta.toFixed(2)}</td>
-      <td style="border: 1px solid #ccc; padding: 4px;">${stat.bestFitness.toFixed(2)}</td>
-    </tr>`;
+  // Update generation statistics display
+  const statsElement = document.getElementById('ga-stats');
+  if (statsElement && generationStats.length > 0) {
+    const latest = generationStats[generationStats.length - 1];
+    statsElement.innerHTML = `
+      <h3>Genetic Algorithm Progress</h3>
+      <p><strong>Generation:</strong> ${latest.generation}</p>
+      <p><strong>Best Fitness:</strong> ${latest.bestFitness.toFixed(2)}</p>
+      <p><strong>Average Fitness:</strong> ${latest.avgFitness.toFixed(2)}</p>
+      <p><strong>Worst Fitness:</strong> ${latest.worstFitness.toFixed(2)}</p>
+      <p><strong>Improvement:</strong> ${latest.delta > 0 ? '+' : ''}${latest.delta.toFixed(2)}</p>
+    `;
   }
-  historyTable += '</table>';
   
-  const modeText = simulationMode ? "SIMULATION MODE" : "SHOWING BEST INDIVIDUAL";
-  const modeColor = simulationMode ? "#0095DD" : "#FF0000";
+  // Update current individual display
+  const individualElement = document.getElementById('current-individual');
+  if (individualElement && currentDisplayIndividual) {
+    individualElement.innerHTML = `
+      <h3>Current Individual</h3>
+      <p><strong>Generation:</strong> ${currentDisplayIndividual.generation || 'N/A'}</p>
+      <p><strong>Fitness:</strong> ${currentDisplayIndividual.fitness.toFixed(2)}</p>
+      <p><strong>Current State:</strong> ${currentState}</p>
+    `;
+  }
   
-  gaDiv.innerHTML = `
-    <h3>Genetic Algorithm Status</h3>
-    <p style="color: ${modeColor}; font-weight: bold;">${modeText}</p>
-    <p>Generation: ${generation}</p>
-    <p>Individual: ${currentIndividualIndex + 1}/${POPULATION_SIZE}</p>
-    <p>Current Avg Fitness: ${avgFitness.toFixed(2)}</p>
-    <p>Best Fitness This Gen: ${bestIndividual.fitness.toFixed(2)}</p>
-    ${bestIndividualEver ? `<p>Best Ever Fitness: ${bestIndividualEver.fitness.toFixed(2)}</p>` : ''}
-    
-    <h4>Generation History (Last 10):</h4>
-    ${historyTable}
-    
-    <h4>Best FSA:</h4>
-    <pre style="font-size: 11px; max-height: 300px; overflow-y: auto; background: #f5f5f5; padding: 10px; border: 1px solid #ccc;">${formatFSAForDisplay(bestIndividual)}</pre>
-  `;
+  // Update best individual ever display
+  const bestElement = document.getElementById('best-individual');
+  if (bestElement && bestIndividualEver) {
+    bestElement.innerHTML = `
+      <h3>Best Individual Ever</h3>
+      <p><strong>Generation:</strong> ${bestIndividualEver.generation || 'N/A'}</p>
+      <p><strong>Fitness:</strong> ${bestIndividualEver.fitness.toFixed(2)}</p>
+    `;
+  }
+  
+  // Update queue status
+  const queueElement = document.getElementById('queue-status');
+  if (queueElement) {
+    queueElement.innerHTML = `
+      <h3>Display Queue</h3>
+      <p><strong>Individuals in queue:</strong> ${bestIndividualsQueue.length}</p>
+      <p><strong>Currently playing:</strong> ${isPlayingBestIndividual ? 'Yes' : 'No'}</p>
+      <p><strong>Simulation mode:</strong> ${simulationMode ? 'Yes' : 'No'}</p>
+    `;
+  }
+  
+  console.log('GA Display updated - Generation:', generationStats.length > 0 ? generationStats[generationStats.length - 1].generation : 'N/A');
 }
 
-let gameInterval;
-
-function startGameLoop() {
-  if (gameInterval) {
-    clearInterval(gameInterval);
+// Initialize web worker
+function initializeWorker() {
+  try {
+    gaWorker = new Worker('ga-worker.js');
+    console.log('Web worker created successfully');
+  } catch (error) {
+    console.error('Failed to create web worker:', error);
+    // Fallback: run a simple demo without GA
+    startSimpleDemo();
+    return;
   }
-  gameInterval = setInterval(draw, simulationMode ? 1 : 10);
+  
+  gaWorker.onmessage = function(e) {
+    console.log('Received message from worker:', e.data.type);
+    const { type } = e.data;
+    
+    switch (type) {
+      case 'newBestIndividual':
+        bestIndividualsQueue.push({
+          individual: e.data.individual,
+          timestamp: Date.now()
+        });
+        generationStats = e.data.generationStats;
+        updateGADisplay();
+        
+        if (!isPlayingBestIndividual && bestIndividualsQueue.length === 1) {
+          playNextBestIndividual();
+        }
+        break;
+        
+      case 'generationUpdate':
+        generationStats = e.data.generationStats;
+        updateGADisplay();
+        break;
+        
+      case 'stats':
+        generationStats = e.data.generationStats;
+        if (e.data.bestIndividualEver && bestIndividualsQueue.length === 0) {
+          bestIndividualsQueue.push({
+            individual: e.data.bestIndividualEver,
+            timestamp: Date.now()
+          });
+          playNextBestIndividual();
+        }
+        updateGADisplay();
+        break;
+    }
+  };
+  
+  gaWorker.onerror = function(error) {
+    console.error('Web worker error:', error);
+    startSimpleDemo();
+  };
+  
+  // Initialize the worker
+  gaWorker.postMessage({
+    type: 'init',
+    data: {
+      canvasWidth: canvas.width,
+      canvasHeight: canvas.height,
+      paddleWidth: paddleWidth,
+      brickRowCount: brickRowCount,
+      brickColumnCount: brickColumnCount
+    }
+  });
+  
+  console.log('Initialization message sent to worker');
+}
+
+// Play next best individual from queue
+function playNextBestIndividual() {
+  if (bestIndividualsQueue.length === 0) {
+    isPlayingBestIndividual = false;
+    return;
+  }
+  
+  const nextBest = bestIndividualsQueue.shift();
+  currentDisplayIndividual = nextBest.individual;
+  currentState = 0;
+  isPlayingBestIndividual = true;
+  
+  resetGame();
+  startDisplayMode();
+}
+
+function startDisplayMode() {
+  if (displayInterval) {
+    clearInterval(displayInterval);
+  }
+  displayInterval = setInterval(draw, 16); // ~60 FPS
+}
+
+function stopDisplayMode() {
+  if (displayInterval) {
+    clearInterval(displayInterval);
+    displayInterval = null;
+  }
+}
+
+function runSimulationStep() {
+  if (gameOver) return false;
+
+  // Check for maximum game time to prevent infinite play
+  if (frameCount - gameStartTime > MAX_GAME_TIME) {
+    gameOver = true;
+    return false;
+  }
+  
+  collisionDetection();
+
+  if (x + dx > canvas.width - ballRadius || x + dx < ballRadius) {
+    dx = -dx;
+  }
+  if (y + dy < ballRadius) {
+    dy = -dy;
+  } else if (y + dy > canvas.height - ballRadius) {
+    if (x > paddleX && x < paddleX + paddleWidth) {
+      dy = -dy;
+    } else {
+      gameOver = true;
+      return false;
+    }
+  }
+
+  const move = getNextMovement();
+  if (move === 1 && paddleX < canvas.width - paddleWidth) {
+    paddleX += 7;
+  } else if (move === -1 && paddleX > 0) {
+    paddleX -= 7;
+  }
+
+  x += dx;
+  y += dy;
+  frameCount++;
+  
+  return true; // Game is still running
+}
+
+function runCompleteSimulation() {
+  while (!gameOver) {
+    if (!runSimulationStep()) break;
+  }
+  resetGame();
 }
 
 function resetGame() {
@@ -309,6 +458,7 @@ function resetGame() {
     // Check if this is the best individual ever
     if (!bestIndividualEver || currentFSA.fitness > bestIndividualEver.fitness) {
       bestIndividualEver = JSON.parse(JSON.stringify(currentFSA));
+      bestIndividualEver.generation = generation; // Add generation info
     }
   }
   
@@ -320,18 +470,30 @@ function resetGame() {
       // After each generation, show the best individual playing a full game
       showingBestIndividual = true;
       simulationMode = false;
-      currentFSA = JSON.parse(JSON.stringify(bestIndividualEver));
+      // Make sure we have a valid best individual before copying
+      if (bestIndividualEver) {
+        currentFSA = JSON.parse(JSON.stringify(bestIndividualEver));
+      } else {
+        // Fallback to the best from current population
+        const sortedPop = [...population].sort((a, b) => b.fitness - a.fitness);
+        currentFSA = JSON.parse(JSON.stringify(sortedPop[0]));
+      }
       currentState = 0;
+      startDisplayMode(); // Start visual display
     } else {
       currentFSA = population[currentIndividualIndex];
       currentState = 0;
+      // Continue simulation immediately
+      setTimeout(runCompleteSimulation, 0); // Run next simulation on next tick
     }
   } else {
     // We just finished showing the best individual, return to simulation
     showingBestIndividual = false;
     simulationMode = true;
+    stopDisplayMode();
     currentFSA = population[currentIndividualIndex];
     currentState = 0;
+    setTimeout(runCompleteSimulation, 0); // Resume simulation
   }
   
   updateGADisplay();
@@ -359,9 +521,6 @@ function resetGame() {
       bricks[c][r].status = 1;
     }
   }
-
-  // After mode changes, restart the game loop with correct timing
-  startGameLoop();
 }
 
 function drawTimer() {
@@ -372,7 +531,7 @@ function drawTimer() {
 }
 
 function getNextMovement() {
-  if (!currentFSA) return 0;
+  if (!currentDisplayIndividual) return 0;
   
   // Get current inputs
   const inputs = getFSAInputs();
@@ -384,10 +543,10 @@ function getNextMovement() {
   }
   
   // Get action from current state
-  const action = currentFSA.states[currentState].action;
+  const action = currentDisplayIndividual.states[currentState].action;
   
   // Transition to next state
-  currentState = currentFSA.states[currentState].transitions[inputIndex];
+  currentState = currentDisplayIndividual.states[currentState].transitions[inputIndex];
   
   return action;
 }
@@ -408,7 +567,6 @@ function collisionDetection() {
           score++;
           if (score === brickRowCount * brickColumnCount) {
             gameOver = true;
-            setTimeout(resetGame, 1000);
           }
         }
       }
@@ -457,62 +615,44 @@ function drawScore() {
 }
 
 function draw() {
-  if (gameOver) return;
-
-  // Check for maximum game time to prevent infinite play
-  if (frameCount - gameStartTime > MAX_GAME_TIME) {
-    gameOver = true;
-    resetGame();
+  if (gameOver) {
+    stopDisplayMode();
+    // Move to next best individual after a short delay
+    setTimeout(() => {
+      playNextBestIndividual();
+    }, 1000);
     return;
   }
 
-  // Only draw if not in simulation mode
-  if (!simulationMode) {
-    ctx.clearRect(0, 0, canvas.width, canvas.height);
-    drawBricks();
-    drawBall();
-    drawPaddle();
-    drawScore();
-    drawTimer();
-    
-    // Add indicator that we're showing the best individual
-    if (showingBestIndividual) {
-      ctx.font = "20px Arial";
-      ctx.fillStyle = "#FF0000";
-      ctx.fillText("BEST INDIVIDUAL", canvas.width / 2 - 80, 50);
-    }
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+  drawBricks();
+  drawBall();
+  drawPaddle();
+  drawScore();
+  drawTimer();
+  
+  // Show generation info
+  if (currentDisplayIndividual) {
+    ctx.font = "16px Arial";
+    ctx.fillStyle = "#FF0000";
+    ctx.fillText(`Generation ${currentDisplayIndividual.generation}`, canvas.width / 2 - 60, 50);
+    ctx.fillText(`Fitness: ${currentDisplayIndividual.fitness.toFixed(2)}`, canvas.width / 2 - 60, 70);
   }
   
-  collisionDetection();
-
-  if (x + dx > canvas.width - ballRadius || x + dx < ballRadius) {
-    dx = -dx;
-  }
-  if (y + dy < ballRadius) {
-    dy = -dy;
-  } else if (y + dy > canvas.height - ballRadius) {
-    if (x > paddleX && x < paddleX + paddleWidth) {
-      dy = -dy;
-    } else {
-      gameOver = true;
-      resetGame();
-      return;
-    }
-  }
-
-  const move = getNextMovement();
-  if (move === 1 && paddleX < canvas.width - paddleWidth) {
-    paddleX += 7;
-  } else if (move === -1 && paddleX > 0) {
-    paddleX -= 7;
-  }
-
-  x += dx;
-  y += dy;
-  frameCount++;
+  // Run one simulation step
+  runSimulationStep();
 }
 
-// Initialize GA and start with appropriate interval
+// Initialize everything
+console.log('Initializing game...');
 initializePopulation();
+initializeWorker();
 updateGADisplay();
-startGameLoop();
+console.log('Game initialization complete');
+
+// Add this function to handle the case when worker fails
+function startSimpleDemo() {
+    console.log('Starting simple demo mode (no genetic algorithm)');
+    // Initialize a basic game without the genetic algorithm
+    // You can implement a simple AI or manual controls here
+}

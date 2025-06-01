@@ -43,6 +43,7 @@ let generationStats = [];
 let isPlayingBestIndividual = false;
 let displayInterval = null;
 let bestIndividualEver = null;
+let lastBestFitness = -1; // Track the last best fitness to detect improvements
 
 // Genetic Algorithm Configuration (keep for reference)
 const POPULATION_SIZE = 20;
@@ -323,8 +324,15 @@ function updateGADisplay() {
   // Update only the stats container, not the entire gaDisplay
   statsContainer.innerHTML = statsHTML;
   
-  // Draw the graph
-  drawGraph();
+  // Only update graph if best fitness has improved or this is the first update
+  const currentBestFitness = bestIndividualEver ? bestIndividualEver.fitness : 0;
+  if (currentBestFitness > lastBestFitness || lastBestFitness === -1) {
+    console.log(`Graph update: Best fitness improved from ${lastBestFitness} to ${currentBestFitness}`);
+    drawGraph();
+    lastBestFitness = currentBestFitness;
+  } else {
+    console.log(`Graph update skipped: Best fitness unchanged at ${currentBestFitness}`);
+  }
   
   console.log('GA Display update complete');
 }

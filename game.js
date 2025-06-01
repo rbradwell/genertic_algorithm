@@ -52,6 +52,164 @@ const MAX_GAME_TIME = 3000;
 const NUM_STATES = 8;
 const NUM_INPUTS = 6;
 
+// Add canvas for the graph
+let graphCanvas = null;
+let graphCtx = null;
+
+// Graph configuration
+const GRAPH_WIDTH = 400;
+const GRAPH_HEIGHT = 200;
+const GRAPH_MARGIN = 40;
+
+function initializeGraph() {
+  // Create graph canvas
+  graphCanvas = document.createElement('canvas');
+  graphCanvas.width = GRAPH_WIDTH;
+  graphCanvas.height = GRAPH_HEIGHT;
+  graphCanvas.style.border = '1px solid #ccc';
+  graphCanvas.style.marginTop = '10px';
+  graphCtx = graphCanvas.getContext('2d');
+  
+  // Add to gaDisplay
+  const gaDisplayElement = document.getElementById('gaDisplay');
+  if (gaDisplayElement) {
+    // Check if graph container already exists
+    let graphContainer = document.getElementById('graph-container');
+    if (!graphContainer) {
+      graphContainer = document.createElement('div');
+      graphContainer.id = 'graph-container';
+      graphContainer.innerHTML = '<h3>Fitness Progress</h3>';
+      graphContainer.appendChild(graphCanvas);
+      gaDisplayElement.appendChild(graphContainer);
+      console.log('Graph container created and added to gaDisplay');
+    }
+  } else {
+    console.error('gaDisplay element not found when initializing graph!');
+  }
+}
+
+function drawGraph() {
+  if (!graphCtx || generationStats.length === 0) return;
+  
+  // Clear canvas
+  graphCtx.clearRect(0, 0, GRAPH_WIDTH, GRAPH_HEIGHT);
+  
+  // Get data ranges
+  const maxGeneration = Math.max(1, generationStats.length);
+  const allFitnesses = generationStats.flatMap(stat => [stat.bestFitness, stat.avgFitness]);
+  const maxFitness = Math.max(...allFitnesses, 100);
+  const minFitness = Math.min(...allFitnesses, 0);
+  const fitnessRange = maxFitness - minFitness || 1;
+  
+  // Draw axes
+  graphCtx.strokeStyle = '#333';
+  graphCtx.lineWidth = 1;
+  graphCtx.beginPath();
+  // Y-axis
+  graphCtx.moveTo(GRAPH_MARGIN, GRAPH_MARGIN);
+  graphCtx.lineTo(GRAPH_MARGIN, GRAPH_HEIGHT - GRAPH_MARGIN);
+  // X-axis
+  graphCtx.moveTo(GRAPH_MARGIN, GRAPH_HEIGHT - GRAPH_MARGIN);
+  graphCtx.lineTo(GRAPH_WIDTH - GRAPH_MARGIN, GRAPH_HEIGHT - GRAPH_MARGIN);
+  graphCtx.stroke();
+  
+  // Draw grid lines and labels
+  graphCtx.strokeStyle = '#eee';
+  graphCtx.fillStyle = '#666';
+  graphCtx.font = '10px Arial';
+  
+  // Y-axis labels and grid
+  for (let i = 0; i <= 5; i++) {
+    const y = GRAPH_MARGIN + (i / 5) * (GRAPH_HEIGHT - 2 * GRAPH_MARGIN);
+    const fitness = maxFitness - (i / 5) * fitnessRange;
+    
+    graphCtx.beginPath();
+    graphCtx.moveTo(GRAPH_MARGIN, y);
+    graphCtx.lineTo(GRAPH_WIDTH - GRAPH_MARGIN, y);
+    graphCtx.stroke();
+    
+    graphCtx.fillText(fitness.toFixed(0), 5, y + 3);
+  }
+  
+  // X-axis labels and grid
+  const xStep = Math.max(1, Math.floor(maxGeneration / 10));
+  for (let gen = 0; gen <= maxGeneration; gen += xStep) {
+    const x = GRAPH_MARGIN + (gen / maxGeneration) * (GRAPH_WIDTH - 2 * GRAPH_MARGIN);
+    
+    graphCtx.beginPath();
+    graphCtx.moveTo(x, GRAPH_MARGIN);
+    graphCtx.lineTo(x, GRAPH_HEIGHT - GRAPH_MARGIN);
+    graphCtx.stroke();
+    
+    graphCtx.fillText(gen.toString(), x - 10, GRAPH_HEIGHT - 10);
+  }
+  
+  if (generationStats.length < 2) return;
+  
+  // Helper function to convert data to canvas coordinates
+  function getX(generation) {
+    return GRAPH_MARGIN + ((generation - 1) / maxGeneration) * (GRAPH_WIDTH - 2 * GRAPH_MARGIN);
+  }
+  
+  function getY(fitness) {
+    return GRAPH_MARGIN + (1 - (fitness - minFitness) / fitnessRange) * (GRAPH_HEIGHT - 2 * GRAPH_MARGIN);
+  }
+  
+  // Draw best fitness line
+  graphCtx.strokeStyle = '#ff4444';
+  graphCtx.lineWidth = 2;
+  graphCtx.beginPath();
+  
+  let bestSoFar = 0;
+  for (let i = 0; i < generationStats.length; i++) {
+    const stat = generationStats[i];
+    bestSoFar = Math.max(bestSoFar, stat.bestFitness);
+    const x = getX(stat.generation);
+    const y = getY(bestSoFar);
+    
+    if (i === 0) {
+      graphCtx.moveTo(x, y);
+    } else {
+      graphCtx.lineTo(x, y);
+    }
+  }
+  graphCtx.stroke();
+  
+  // Draw average fitness line
+  graphCtx.strokeStyle = '#4444ff';
+  graphCtx.lineWidth = 2;
+  graphCtx.beginPath();
+  
+  for (let i = 0; i < generationStats.length; i++) {
+    const stat = generationStats[i];
+    const x = getX(stat.generation);
+    const y = getY(stat.avgFitness);
+    
+    if (i === 0) {
+      graphCtx.moveTo(x, y);
+    } else {
+      graphCtx.lineTo(x, y);
+    }
+  }
+  graphCtx.stroke();
+  
+  // Draw legend
+  graphCtx.fillStyle = '#333';
+  graphCtx.font = '12px Arial';
+  
+  // Best fitness legend
+  graphCtx.fillStyle = '#ff4444';
+  graphCtx.fillRect(GRAPH_WIDTH - 150, 20, 15, 3);
+  graphCtx.fillStyle = '#333';
+  graphCtx.fillText('Best So Far', GRAPH_WIDTH - 130, 25);
+  
+  // Average fitness legend
+  graphCtx.fillStyle = '#4444ff';
+  graphCtx.fillRect(GRAPH_WIDTH - 150, 35, 15, 3);
+  graphCtx.fillStyle = '#333';
+  graphCtx.fillText('Generation Avg', GRAPH_WIDTH - 130, 40);
+}
+
 // FSA Input encoding
 function getFSAInputs() {
   const ballX = x / canvas.width; // Normalized ball X position
@@ -86,7 +244,20 @@ function updateGADisplay() {
     return;
   }
   
-  // Build the complete HTML content
+  // Initialize graph if it doesn't exist
+  if (!graphCanvas) {
+    initializeGraph();
+  }
+  
+  // Find or create the stats container
+  let statsContainer = document.getElementById('ga-stats-container');
+  if (!statsContainer) {
+    statsContainer = document.createElement('div');
+    statsContainer.id = 'ga-stats-container';
+    gaDisplayElement.appendChild(statsContainer);
+  }
+  
+  // Build the stats HTML content
   let statsHTML = '';
   
   // Generation statistics
@@ -149,8 +320,11 @@ function updateGADisplay() {
     `;
   }
   
-  // Set the complete HTML
-  gaDisplayElement.innerHTML = statsHTML;
+  // Update only the stats container, not the entire gaDisplay
+  statsContainer.innerHTML = statsHTML;
+  
+  // Draw the graph
+  drawGraph();
   
   console.log('GA Display update complete');
 }

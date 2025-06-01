@@ -1,0 +1,122 @@
+<svg width="800" height="900" xmlns="http://www.w3.org/2000/svg">
+  <!-- Title -->
+  <text x="400" y="30" text-anchor="middle" font-family="Arial" font-size="20" font-weight="bold">Genetic Algorithm Process Flow</text>
+  
+  <!-- Arrow marker definition -->
+  <defs>
+    <marker id="arrowhead" markerWidth="10" markerHeight="7" 
+            refX="9" refY="3.5" orient="auto">
+      <polygon points="0 0, 10 3.5, 0 7" fill="#333"/>
+    </marker>
+  </defs>
+  
+  <!-- Step 1: Initialize Population -->
+  <rect x="300" y="60" width="200" height="60" fill="#e6f3ff" stroke="#333" stroke-width="2" rx="5"/>
+  <text x="400" y="85" text-anchor="middle" font-family="Arial" font-size="14" font-weight="bold">1. Initialize Population</text>
+  <text x="400" y="105" text-anchor="middle" font-family="Arial" font-size="12">Create random individuals</text>
+  
+  <!-- Arrow down -->
+  <line x1="400" y1="120" x2="400" y2="150" stroke="#333" stroke-width="2" marker-end="url(#arrowhead)"/>
+  
+  <!-- Step 2: Evaluate Fitness -->
+  <rect x="300" y="160" width="200" height="60" fill="#fff2e6" stroke="#333" stroke-width="2" rx="5"/>
+  <text x="400" y="185" text-anchor="middle" font-family="Arial" font-size="14" font-weight="bold">2. Evaluate Fitness</text>
+  <text x="400" y="205" text-anchor="middle" font-family="Arial" font-size="12">Test each individual's performance</text>
+  
+  <!-- Arrow down -->
+  <line x1="400" y1="220" x2="400" y2="250" stroke="#333" stroke-width="2" marker-end="url(#arrowhead)"/>
+  
+  <!-- Decision: Termination Criteria -->
+  <polygon points="400,260 480,300 400,340 320,300" fill="#ffe6e6" stroke="#333" stroke-width="2"/>
+  <text x="400" y="295" text-anchor="middle" font-family="Arial" font-size="12" font-weight="bold">Termination</text>
+  <text x="400" y="310" text-anchor="middle" font-family="Arial" font-size="12">Criteria Met?</text>
+  
+  <!-- YES arrow to STOP -->
+  <line x1="480" y1="300" x2="550" y2="300" stroke="#333" stroke-width="2" marker-end="url(#arrowhead)"/>
+  <text x="515" y="295" text-anchor="middle" font-family="Arial" font-size="12" fill="green">YES</text>
+  
+  <!-- STOP box -->
+  <rect x="560" y="270" width="120" height="60" fill="#e6ffe6" stroke="#333" stroke-width="2" rx="5"/>
+  <text x="620" y="295" text-anchor="middle" font-family="Arial" font-size="14" font-weight="bold">STOP</text>
+  <text x="620" y="315" text-anchor="middle" font-family="Arial" font-size="12">Return best solution</text>
+  
+  <!-- NO arrow down -->
+  <line x1="400" y1="340" x2="400" y2="370" stroke="#333" stroke-width="2" marker-end="url(#arrowhead)"/>
+  <text x="415" y="355" text-anchor="start" font-family="Arial" font-size="12" fill="red">NO</text>
+  
+  <!-- Step 3: Selection -->
+  <rect x="300" y="380" width="200" height="60" fill="#f0e6ff" stroke="#333" stroke-width="2" rx="5"/>
+  <text x="400" y="405" text-anchor="middle" font-family="Arial" font-size="14" font-weight="bold">3. Selection</text>
+  <text x="400" y="425" text-anchor="middle" font-family="Arial" font-size="12">Choose parents for reproduction</text>
+  
+  <!-- Arrow down -->
+  <line x1="400" y1="440" x2="400" y2="470" stroke="#333" stroke-width="2" marker-end="url(#arrowhead)"/>
+  
+  <!-- Step 4: Crossover -->
+  <rect x="300" y="480" width="200" height="60" fill="#e6ffe6" stroke="#333" stroke-width="2" rx="5"/>
+  <text x="400" y="505" text-anchor="middle" font-family="Arial" font-size="14" font-weight="bold">4. Crossover</text>
+  <text x="400" y="525" text-anchor="middle" font-family="Arial" font-size="12">Combine parents to create offspring</text>
+  
+  <!-- Arrow down -->
+  <line x1="400" y1="540" x2="400" y2="570" stroke="#333" stroke-width="2" marker-end="url(#arrowhead)"/>
+  
+  <!-- Step 5: Mutation -->
+  <rect x="300" y="580" width="200" height="60" fill="#ffe6f0" stroke="#333" stroke-width="2" rx="5"/>
+  <text x="400" y="605" text-anchor="middle" font-family="Arial" font-size="14" font-weight="bold">5. Mutation</text>
+  <text x="400" y="625" text-anchor="middle" font-family="Arial" font-size="12">Randomly modify offspring</text>
+  
+  <!-- Arrow down -->
+  <line x1="400" y1="640" x2="400" y2="670" stroke="#333" stroke-width="2" marker-end="url(#arrowhead)"/>
+  
+  <!-- Step 6: Replace Population -->
+  <rect x="300" y="680" width="200" height="60" fill="#f5f5e6" stroke="#333" stroke-width="2" rx="5"/>
+  <text x="400" y="705" text-anchor="middle" font-family="Arial" font-size="14" font-weight="bold">6. Replace Population</text>
+  <text x="400" y="725" text-anchor="middle" font-family="Arial" font-size="12">Create new generation</text>
+  
+  <!-- Arrow back to evaluation -->
+  <line x1="300" y1="710" x2="250" y2="710" stroke="#333" stroke-width="2"/>
+  <line x1="250" y1="710" x2="250" y2="190" stroke="#333" stroke-width="2"/>
+  <line x1="250" y1="190" x2="300" y2="190" stroke="#333" stroke-width="2" marker-end="url(#arrowhead)"/>
+  
+  <!-- Generation counter -->
+  <text x="200" y="450" text-anchor="middle" font-family="Arial" font-size="12" font-style="italic">Generation + 1</text>
+  
+  <!-- Side annotations -->
+  
+  <!-- Tournament selection annotation -->
+  <text x="530" y="420" text-anchor="start" font-family="Arial" font-size="11" fill="#666">• Tournament selection</text>
+  <text x="530" y="435" text-anchor="start" font-family="Arial" font-size="11" fill="#666">• Best individuals survive</text>
+  
+  <text x="530" y="520" text-anchor="start" font-family="Arial" font-size="11" fill="#666">• Variable-length mixing</text>
+  <text x="530" y="535" text-anchor="start" font-family="Arial" font-size="11" fill="#666">• Repair transitions</text>
+  
+  <text x="530" y="620" text-anchor="start" font-family="Arial" font-size="11" fill="#666">• Random state changes</text>
+  <text x="530" y="635" text-anchor="start" font-family="Arial" font-size="11" fill="#666">• Add/remove states</text>
+  
+  <!-- Termination criteria box -->
+  <rect x="520" y="130" width="180" height="80" fill="#f9f9f9" stroke="#ccc" stroke-width="1" rx="3"/>
+  <text x="610" y="150" text-anchor="middle" font-family="Arial" font-size="12" font-weight="bold">Termination Criteria:</text>
+  <text x="530" y="170" font-family="Arial" font-size="10">• Perfect solution found</text>
+  <text x="530" y="185" font-family="Arial" font-size="10">• Max generations reached</text>
+  <text x="530" y="200" font-family="Arial" font-size="10">• No improvement threshold</text>
+  
+  <text x="180" y="400" text-anchor="middle" font-family="Arial" font-size="14" font-weight="bold" fill="#0066cc" transform="rotate(-90 180 400)">EVOLUTION</text>
+  
+  <!-- Key concepts box -->
+  <rect x="50" y="760" width="700" height="120" fill="#f0f8ff" stroke="#333" stroke-width="2" rx="5"/>
+  <text x="400" y="785" text-anchor="middle" font-family="Arial" font-size="16" font-weight="bold">Key Genetic Algorithm Concepts</text>
+  
+  <!-- Left column -->
+  <text x="70" y="810" font-family="Arial" font-size="12" font-weight="bold">Population:</text>
+  <text x="70" y="825" font-family="Arial" font-size="11">Set of candidate solutions</text>
+  
+  <text x="70" y="845" font-family="Arial" font-size="12" font-weight="bold">Chromosome:</text>
+  <text x="70" y="860" font-family="Arial" font-size="11">Encoded solution representation</text>
+  
+  <!-- Right column -->
+  <text x="420" y="810" font-family="Arial" font-size="12" font-weight="bold">Selection Pressure:</text>
+  <text x="420" y="825" font-family="Arial" font-size="11">Better solutions reproduce more</text>
+  
+  <text x="420" y="845" font-family="Arial" font-size="12" font-weight="bold">Convergence:</text>
+  <text x="420" y="860" font-family="Arial" font-size="11">Evolution toward optimal solutions</text>
+</svg>

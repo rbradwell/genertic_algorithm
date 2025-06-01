@@ -1,0 +1,81 @@
+<svg width="800" height="600" xmlns="http://www.w3.org/2000/svg">
+  <!-- Title -->
+  <text x="400" y="30" text-anchor="middle" font-family="Arial" font-size="18" font-weight="bold">FSA for Breakout Game (3 States)</text>
+  
+  <!-- State 0 -->
+  <circle cx="150" cy="150" r="40" fill="#ffcccc" stroke="#333" stroke-width="2"/>
+  <text x="150" y="145" text-anchor="middle" font-family="Arial" font-size="12" font-weight="bold">State 0</text>
+  <text x="150" y="160" text-anchor="middle" font-family="Arial" font-size="11">Action: -1</text>
+  <text x="150" y="175" text-anchor="middle" font-family="Arial" font-size="10">(Move Left)</text>
+  
+  <!-- State 1 -->
+  <circle cx="400" cy="150" r="40" fill="#ccffcc" stroke="#333" stroke-width="2"/>
+  <text x="400" y="145" text-anchor="middle" font-family="Arial" font-size="12" font-weight="bold">State 1</text>
+  <text x="400" y="160" text-anchor="middle" font-family="Arial" font-size="11">Action: 0</text>
+  <text x="400" y="175" text-anchor="middle" font-family="Arial" font-size="10">(Stay Still)</text>
+  
+  <!-- State 2 -->
+  <circle cx="275" cy="350" r="40" fill="#ccccff" stroke="#333" stroke-width="2"/>
+  <text x="275" y="345" text-anchor="middle" font-family="Arial" font-size="12" font-weight="bold">State 2</text>
+  <text x="275" y="360" text-anchor="middle" font-family="Arial" font-size="11">Action: 1</text>
+  <text x="275" y="375" text-anchor="middle" font-family="Arial" font-size="10">(Move Right)</text>
+  
+  <!-- Start indicator -->
+  <polygon points="80,150 100,140 100,160" fill="#333"/>
+  <text x="70" y="155" text-anchor="middle" font-family="Arial" font-size="10">START</text>
+  
+  <!-- Example transitions -->
+  <!-- State 0 to State 1 -->
+  <path d="M 190 150 Q 250 100 360 150" fill="none" stroke="#666" stroke-width="2" marker-end="url(#arrowhead)"/>
+  <text x="275" y="120" text-anchor="middle" font-family="Arial" font-size="9" fill="#666">Input [0,1,1,1,0,1] → Index 46</text>
+  
+  <!-- State 1 to State 2 -->
+  <path d="M 380 180 Q 350 250 295 320" fill="none" stroke="#666" stroke-width="2" marker-end="url(#arrowhead)"/>
+  <text x="340" y="250" text-anchor="middle" font-family="Arial" font-size="9" fill="#666">Input [1,0,1,0,1,0] → Index 21</text>
+  
+  <!-- State 2 to State 0 -->
+  <path d="M 235 350 Q 150 300 150 190" fill="none" stroke="#666" stroke-width="2" marker-end="url(#arrowhead)"/>
+  <text x="180" y="280" text-anchor="middle" font-family="Arial" font-size="9" fill="#666">Input [0,0,0,1,1,1] → Index 56</text>
+  
+  <!-- Self loop example on State 1 -->
+  <path d="M 430 120 Q 460 100 460 130 Q 460 160 430 140" fill="none" stroke="#666" stroke-width="2" marker-end="url(#arrowhead)"/>
+  <text x="480" y="115" text-anchor="start" font-family="Arial" font-size="9" fill="#666">Input [1,1,0,0,0,0] → Index 3</text>
+  
+  <!-- Arrow marker definition -->
+  <defs>
+    <marker id="arrowhead" markerWidth="10" markerHeight="7" 
+            refX="9" refY="3.5" orient="auto">
+      <polygon points="0 0, 10 3.5, 0 7" fill="#666"/>
+    </marker>
+  </defs>
+  
+  <!-- Input encoding legend -->
+  <rect x="500" y="80" width="280" height="180" fill="#f9f9f9" stroke="#ccc" stroke-width="1"/>
+  <text x="640" y="100" text-anchor="middle" font-family="Arial" font-size="14" font-weight="bold">Input Encoding (6 bits)</text>
+  
+  <text x="510" y="120" font-family="Arial" font-size="10">Bit 0: Ball in left third (ballX &lt; 0.33)</text>
+  <text x="510" y="135" font-family="Arial" font-size="10">Bit 1: Ball in right third (ballX &gt; 0.66)</text>
+  <text x="510" y="150" font-family="Arial" font-size="10">Bit 2: Ball in lower area (ballY &gt; 0.7)</text>
+  <text x="510" y="165" font-family="Arial" font-size="10">Bit 3: Paddle left of ball (paddleX &lt; ballX)</text>
+  <text x="510" y="180" font-family="Arial" font-size="10">Bit 4: Ball moving right (dx &gt; 0)</text>
+  <text x="510" y="195" font-family="Arial" font-size="10">Bit 5: Ball moving down (dy &gt; 0)</text>
+  
+  <text x="510" y="220" font-family="Arial" font-size="11" font-weight="bold">Index = Σ(bit[i] × 2^i)</text>
+  <text x="510" y="240" font-family="Arial" font-size="10">Example: [0,1,1,1,0,1] = 0×1 + 1×2 + 1×4 + 1×8 + 0×16 + 1×32 = 46</text>
+  
+  <!-- Transition table note -->
+  <rect x="500" y="300" width="280" height="120" fill="#f0f0f0" stroke="#ccc" stroke-width="1"/>
+  <text x="640" y="320" text-anchor="middle" font-family="Arial" font-size="14" font-weight="bold">Transition Tables</text>
+  <text x="510" y="340" font-family="Arial" font-size="10">Each state has 64 transitions (one per input combination)</text>
+  <text x="510" y="355" font-family="Arial" font-size="10">transitions[46] in State 0 → go to State 1</text>
+  <text x="510" y="370" font-family="Arial" font-size="10">transitions[21] in State 1 → go to State 2</text>
+  <text x="510" y="385" font-family="Arial" font-size="10">transitions[56] in State 2 → go to State 0</text>
+  <text x="510" y="400" font-family="Arial" font-size="10">transitions[3] in State 1 → stay in State 1</text>
+  
+  <!-- Game action legend -->
+  <rect x="50" y="450" width="200" height="100" fill="#fff9e6" stroke="#ccc" stroke-width="1"/>
+  <text x="150" y="470" text-anchor="middle" font-family="Arial" font-size="14" font-weight="bold">Actions</text>
+  <text x="60" y="490" font-family="Arial" font-size="12">-1: Move paddle left</text>
+  <text x="60" y="510" font-family="Arial" font-size="12"> 0: Keep paddle still</text>
+  <text x="60" y="530" font-family="Arial" font-size="12">+1: Move paddle right</text>
+</svg>

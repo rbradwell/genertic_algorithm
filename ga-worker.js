@@ -21,6 +21,7 @@ let currentIndividualIndex = 0;
 let generation = 1;
 let generationStats = [];
 let bestIndividualEver = null;
+let evolutionStopped = false;
 
 // FSA Input encoding
 function getFSAInputs(x, y, paddleX, dx, dy) {
@@ -159,6 +160,21 @@ function createNextGeneration() {
     bestIndividualEver = JSON.parse(JSON.stringify(sortedPop[0]));
     bestIndividualEver.generation = generation;
     
+    // Check if this individual completed the game (perfect solution)
+    if (bestIndividualEver.gameCompleted) {
+      evolutionStopped = true;
+      console.log(`Perfect solution found in generation ${generation}! Stopping evolution.`);
+      
+      // Send completion message
+      self.postMessage({
+        type: 'evolutionComplete',
+        individual: bestIndividualEver,
+        generationStats: generationStats,
+        message: `Perfect solution found in generation ${generation}!`
+      });
+      return; // Stop creating new generations
+    }
+    
     // Send new best individual to main thread
     self.postMessage({
       type: 'newBestIndividual',
@@ -296,26 +312,41 @@ function simulateGame(fsa) {
   }
   
   const gameCompleted = score === brickRowCount * brickColumnCount;
-  return calculateFitness(score, frameCount, gameCompleted);
+  const fitness = calculateFitness(score, frameCount, gameCompleted);
+  
+  // Store game completion status in the FSA for later reference
+  fsa.gameCompleted = gameCompleted;
+  
+  return fitness;
 }
 
 // Run evolution
 function runEvolution() {
-  while (true) {
+  // Check if evolution should stop
+  if (evolutionStopped) {
+    console.log('Evolution stopped - perfect solution found');
+    return;
+  }
+  
+  while (currentIndividualIndex < POPULATION_SIZE && !evolutionStopped) {
     // Evaluate current individual
     const currentFSA = population[currentIndividualIndex];
     currentFSA.fitness = simulateGame(currentFSA);
     
     currentIndividualIndex++;
     
-    if (currentIndividualIndex >= POPULATION_SIZE) {
-      createNextGeneration();
-    }
-    
     // Yield control occasionally to prevent blocking
     if (currentIndividualIndex % 5 === 0) {
       setTimeout(() => runEvolution(), 0);
       return;
+    }
+  }
+  
+  if (currentIndividualIndex >= POPULATION_SIZE && !evolutionStopped) {
+    createNextGeneration();
+    // Continue evolution if not stopped
+    if (!evolutionStopped) {
+      setTimeout(() => runEvolution(), 0);
     }
   }
 }

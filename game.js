@@ -370,6 +370,27 @@ function initializeWorker() {
         }
         break;
         
+      case 'evolutionComplete':
+        console.log('Evolution completed! Perfect solution found:', e.data.individual);
+        bestIndividualsQueue.push({
+          individual: e.data.individual,
+          timestamp: Date.now()
+        });
+        if (e.data.generationStats) {
+          generationStats = e.data.generationStats;
+        }
+        bestIndividualEver = e.data.individual;
+        
+        // Show completion message
+        alert(e.data.message || 'Perfect solution found!');
+        
+        updateGADisplay();
+        
+        if (!isPlayingBestIndividual) {
+          playNextBestIndividual();
+        }
+        break;
+        
       case 'generationUpdate':
         console.log('Generation update received:', e.data.generationStats);
         if (e.data.generationStats) {
@@ -385,7 +406,8 @@ function initializeWorker() {
         }
         if (e.data.bestIndividualEver) {
           bestIndividualEver = e.data.bestIndividualEver;
-          if (bestIndividualsQueue.length === 0) {
+          // Only start playing if no individual is currently playing AND queue is empty
+          if (!isPlayingBestIndividual && bestIndividualsQueue.length === 0 && !currentDisplayIndividual) {
             bestIndividualsQueue.push({
               individual: e.data.bestIndividualEver,
               timestamp: Date.now()
@@ -457,6 +479,7 @@ function stopDisplayMode() {
 }
 
 function resetGame() {
+  console.log('Resetting game...');
   frameCount = 0;
   score = 0;
   gameOver = false;
@@ -474,6 +497,8 @@ function resetGame() {
       bricks[c][r].status = 1;
     }
   }
+  
+  console.log(`Game reset - Ball: (${x}, ${y}), Paddle: ${paddleX}, Bricks: ${brickRowCount * brickColumnCount}`);
 }
 
 function drawTimer() {
@@ -499,7 +524,14 @@ function getNextMovement() {
   const action = currentDisplayIndividual.states[currentState].action;
   
   // Transition to next state
-  currentState = currentDisplayIndividual.states[currentState].transitions[inputIndex];
+  const nextState = currentDisplayIndividual.states[currentState].transitions[inputIndex];
+  
+  // Debug logging for problematic individuals
+  if (currentDisplayIndividual.fitness > 10000 && frameCount % 30 === 0) {
+    console.log(`FSA Debug - Frame ${frameCount}: State ${currentState} -> ${nextState}, Action: ${action}, Inputs: [${inputs.join(',')}], InputIndex: ${inputIndex}`);
+  }
+  
+  currentState = nextState;
   
   return action;
 }
@@ -569,11 +601,19 @@ function drawScore() {
 
 function draw() {
   if (gameOver) {
+    console.log(`Game ended - Score: ${score}, Frames: ${frameCount}, Reason: Game Over`);
     stopDisplayMode();
     // Move to next best individual after a short delay
     setTimeout(() => {
       playNextBestIndividual();
     }, 1000);
+    return;
+  }
+
+  // Add timeout check
+  if (frameCount >= MAX_GAME_TIME) {
+    console.log(`Game ended - Score: ${score}, Frames: ${frameCount}, Reason: Timeout`);
+    gameOver = true;
     return;
   }
 
@@ -592,18 +632,28 @@ function draw() {
     ctx.fillText(`Fitness: ${currentDisplayIndividual.fitness.toFixed(2)}`, canvas.width / 2 - 60, 70);
   }
   
+  // Debug ball position
+  if (frameCount % 60 === 0) { // Log every second
+    console.log(`Frame ${frameCount}: Ball at (${x.toFixed(1)}, ${y.toFixed(1)}), velocity (${dx}, ${dy}), paddle at ${paddleX.toFixed(1)}`);
+  }
+  
   // Run one simulation step
   collisionDetection();
 
+  // Ball collision with walls
   if (x + dx > canvas.width - ballRadius || x + dx < ballRadius) {
     dx = -dx;
+    console.log(`Ball bounced off side wall at frame ${frameCount}`);
   }
   if (y + dy < ballRadius) {
     dy = -dy;
+    console.log(`Ball bounced off top wall at frame ${frameCount}`);
   } else if (y + dy > canvas.height - ballRadius) {
     if (x > paddleX && x < paddleX + paddleWidth) {
       dy = -dy;
+      console.log(`Ball bounced off paddle at frame ${frameCount}`);
     } else {
+      console.log(`Ball missed paddle at frame ${frameCount} - Ball X: ${x.toFixed(1)}, Paddle X: ${paddleX.toFixed(1)}-${(paddleX + paddleWidth).toFixed(1)}`);
       gameOver = true;
       return;
     }
@@ -619,6 +669,13 @@ function draw() {
   x += dx;
   y += dy;
   frameCount++;
+
+  // Additional bounds checking
+  if (x < 0 || x > canvas.width || y < 0 || y > canvas.height + 50) {
+    console.log(`Ball went out of bounds at frame ${frameCount}: (${x.toFixed(1)}, ${y.toFixed(1)})`);
+    gameOver = true;
+    return;
+  }
 }
 
 // Add this function to handle the case when worker fails

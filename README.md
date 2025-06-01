@@ -20,3 +20,5 @@ display a timer that increases by 1 each frame until the end of game
 when game ends reset the game and use reset the score, timer to zero. The highest value of the timer is shown on the screen. When the game ends the highest timer is updated if required.
 
 The score is added to the final timer at the end of the game.
+
+http-server -p 3000 -c-1 --cors
